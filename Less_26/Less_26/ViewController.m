@@ -8,7 +8,15 @@
 
 #import "ViewController.h"
 
-@interface ViewController ()
+@interface ViewController () <UITableViewDelegate, UITableViewDataSource, UISearchBarDelegate>
+
+@property (weak, nonatomic) IBOutlet UISearchBar *searchBarOutlet;
+@property (weak, nonatomic) IBOutlet UITableView *tableViewOutlet;
+
+@property (strong, nonatomic) NSMutableArray *dataArray;
+@property (strong, nonatomic) NSMutableArray *searchArray;
+
+@property (assign, nonatomic) BOOL isSearchMode;
 
 @end
 
@@ -16,6 +24,12 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    self.dataArray = [[NSMutableArray alloc] init];
+    self.searchArray = [[NSMutableArray alloc] init];
+    for (NSInteger i = 0; i < 30; i++) {
+        [self.dataArray insertObject:[NSString stringWithFormat:@"String %lu", i+1] atIndex:i];
+    }
     //[self createSomeFile];
     [self readFromFile];
     [self verifyEmail:@"1qweqweqweqe.12qwasda@gmaqqqweqweil.coooqqweqwe"];
@@ -107,6 +121,90 @@
     } else {
         NSLog(@"%@", @"Password is valid");
     }
+}
+
+#pragma mark - Table View Data Source
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return self.isSearchMode ? self.searchArray.count : self.dataArray.count;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    static NSString *const cellIdentifier = @"Cell";
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier forIndexPath:indexPath];
+    
+    [self configureCell:cell forRowAtIndexPath:indexPath];
+    
+    return cell;
+}
+
+- (void)configureCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
+    cell.textLabel.text = self.isSearchMode ? self.searchArray[indexPath.row] : self.dataArray[indexPath.row];
+}
+
+
+
+#pragma mark - Search Bar Delegate
+
+- (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar {
+    NSLog(@"searchBarSearchButtonClicked");
+    
+    [searchBar resignFirstResponder];
+    [self.tableViewOutlet reloadData];
+}
+
+- (void)searchBarCancelButtonClicked:(UISearchBar *)searchBar {
+    NSLog(@"searchBarCancelButtonClicked");
+    
+    self.searchBarOutlet.text = @"";
+    self.isSearchMode = NO;
+    [searchBar resignFirstResponder];
+    [self.tableViewOutlet reloadData];
+}
+
+- (void)searchBarTextDidBeginEditing:(UISearchBar *)searchBar {
+    self.isSearchMode = YES;
+}
+
+- (void)searchBarTextDidEndEditing:(UISearchBar *)searchBar
+{
+    NSLog(@"searchBarTextDidEndEditing");
+    
+    if (self.searchBarOutlet.text.length != 0) {
+        self.isSearchMode = YES;
+    } else {
+        self.isSearchMode = NO;
+    }
+    
+    [self.tableViewOutlet reloadData];
+}
+
+- (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText {
+    NSLog(@"textDidChange");
+    
+    [self.searchArray removeAllObjects];
+    
+    if(searchText.length != 0) {
+        self.isSearchMode = YES;
+        [self searchText];
+    } else {
+        self.isSearchMode = NO;
+    }
+    
+    [self.tableViewOutlet reloadData];
+}
+
+#pragma mark - private
+
+- (void)searchText {
+    NSString *searchText = self.searchBarOutlet.text;
+    
+    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"SELF CONTAINS[c] %@", searchText];
+    self.searchArray = [NSMutableArray arrayWithArray:[self.dataArray filteredArrayUsingPredicate:predicate]];
 }
 
 @end
